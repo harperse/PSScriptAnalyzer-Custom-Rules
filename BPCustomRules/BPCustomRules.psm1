@@ -150,7 +150,7 @@ function Measure-FunctionSizeByLines {
     )
 
     Process {
-        $results = $null
+        $results = @()
         
         if (($FunctionDefinitionAst.Extent.EndScriptPosition.LineNumber - $FunctionDefinitionAst.Extent.StartScriptPosition.LineNumber) -gt 10) {
             $result = New-Object `
@@ -208,8 +208,7 @@ function Measure-LinesEndingWithSemicolons {
     [OutputType([Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     Param
     (
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()]
         [System.Management.Automation.Language.Token[]]$Token
     )
 
@@ -239,11 +238,12 @@ function Measure-PascalCaseFunctionNames {
     [OutputType([Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     Param
     (
-        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][System.Management.Automation.Language.FunctionDefinitionAst]$FunctionDefinitionAst
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()]
+        [System.Management.Automation.Language.FunctionDefinitionAst]$FunctionDefinitionAst
     )
 
     Process {
-        $results = $null
+        $results = @()
         
         return $results
     }
@@ -254,12 +254,27 @@ function Measure-CamelCaseVariableNames {
     [OutputType([Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     Param
     (
-        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][System.Management.Automation.Language.FunctionDefinitionAst]$FunctionDefinitionAst
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()]
+        [System.Management.Automation.Language.Token[]]$Token
     )
 
+    Begin {
+        [string[]]$autoVariables = ([psobject].Assembly.GetType('System.Management.Automation.SpecialVariables').GetFields('NonPublic,Static') | Where-Object FieldType -EQ ([string])).Name
+        $autoVariables += @("FormatEnumerationLimit", "MaximumAliasCount", "MaximumDriveCount", "MaximumErrorCount", "MaximumFunctionCount", "MaximumVariableCount", "PGHome", "PGSE", "PGUICulture", "PGVersionTable", "PROFILE", "PSSessionOption")
+    }
+
     Process {
-        $results = $null
+        $results = @()
         
+        foreach ($subToken in $Token) {
+            if (($subToken -notin $autoVariables) -and ($subToken -cmatch '\$[A-Z]')) {
+                $result = New-Object `
+                    -TypeName "Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord" `
+                    -ArgumentList $Messages.MeasureCamelCaseVariableNames, $subToken.Extent, $PSCmdlet.MyInvocation.InvocationName, Warning, $null
+                $results += $result
+            }
+        }
+
         return $results
     }
 }
@@ -273,7 +288,7 @@ function Measure-VerbNounFunctionNames {
     )
 
     Process {
-        $results = $null
+        $results = @()
         
         return $results
     }
@@ -288,7 +303,7 @@ function Measure-OrphanedFunctions {
     )
 
     Process {
-        $results = $null
+        $results = @()
         
         return $results
     }

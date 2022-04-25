@@ -5,4 +5,5 @@ MeasurePotentialPasswordsOrKeys   = MAPS code should never contain keys in plain
 MeasureFunctionSizeByLines        = Function size should be limited to a maximum of 150 lines. It is best practice for functions to do one thing. This will enforce modular, testable, and more efficient code.
 MeasureLinesByCharacterCount      = Max Line length should be 120 characters. Keeping lines to a small width allows scripts to be read in one direction (top to bottom) without scrolling back-and-forth horizontally. Debugging and reading the code is a lot easier. This is particularly valuable for reading Runbook code in the Azure Automation Account.
 MeasureLinesEndingWithSemicolon   = Semicolons do not serve any function in PowerShell as line terminators and are permitted in PowerShell but do not provide any benefit.
+MeasureCamelCaseVariableNames     = Variables should follow camel casing.
 '@
