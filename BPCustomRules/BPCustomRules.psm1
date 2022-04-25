@@ -9,7 +9,6 @@ else {
     Import-LocalizedData -BindingVariable Messages
 }
 <#
-<#
 .SYNOPSIS
     Removes these unnecessary comments.
 .DESCRIPTION
@@ -234,6 +233,14 @@ function Measure-LinesEndingWithSemicolons {
         }
     }
 }
+
+function Measure-PascalCaseFunctionNames {}
+
+function Measure-CamelCaseVariableNames {}
+
+function Measure-VerbNounFunctionNames {}
+
+function Measure-OrphanedFunctions {}
 
 Export-ModuleMember -Function Measure*
 
