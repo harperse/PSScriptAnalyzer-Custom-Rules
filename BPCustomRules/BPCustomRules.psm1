@@ -234,13 +234,65 @@ function Measure-LinesEndingWithSemicolons {
     }
 }
 
-function Measure-PascalCaseFunctionNames {}
+function Measure-PascalCaseFunctionNames {
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+    Param
+    (
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][System.Management.Automation.Language.FunctionDefinitionAst]$FunctionDefinitionAst
+    )
 
-function Measure-CamelCaseVariableNames {}
+    Process {
+        $results = $null
+        
+        return $results
+    }
+}
 
-function Measure-VerbNounFunctionNames {}
+function Measure-CamelCaseVariableNames {
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+    Param
+    (
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][System.Management.Automation.Language.FunctionDefinitionAst]$FunctionDefinitionAst
+    )
 
-function Measure-OrphanedFunctions {}
+    Process {
+        $results = $null
+        
+        return $results
+    }
+}
+
+function Measure-VerbNounFunctionNames {
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+    Param
+    (
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][System.Management.Automation.Language.FunctionDefinitionAst]$FunctionDefinitionAst
+    )
+
+    Process {
+        $results = $null
+        
+        return $results
+    }
+}
+
+function Measure-OrphanedFunctions {
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+    Param
+    (
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][System.Management.Automation.Language.FunctionDefinitionAst]$FunctionDefinitionAst
+    )
+
+    Process {
+        $results = $null
+        
+        return $results
+    }
+}
 
 Export-ModuleMember -Function Measure*
 
