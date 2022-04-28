@@ -6,4 +6,5 @@ MeasureFunctionSizeByLines        = Function size should be limited to a maximum
 MeasureLinesByCharacterCount      = Max Line length should be 120 characters. Keeping lines to a small width allows scripts to be read in one direction (top to bottom) without scrolling back-and-forth horizontally. Debugging and reading the code is a lot easier. This is particularly valuable for reading Runbook code in the Azure Automation Account.
 MeasureLinesEndingWithSemicolon   = Semicolons do not serve any function in PowerShell as line terminators and are permitted in PowerShell but do not provide any benefit.
 MeasureCamelCaseVariableNames     = Variables should follow camel casing.
+MeasurePascalCaseFunctionNames    = PowerShell uses PascalCase for all public identifiers including classes and enums. Function names should follow PowerShell's Verb-Noun naming conventions.
 '@

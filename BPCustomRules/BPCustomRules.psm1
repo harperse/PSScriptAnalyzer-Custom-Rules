@@ -30,11 +30,13 @@ function Measure-OverComment {
     [OutputType([Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     Param
     (
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [System.Management.Automation.Language.Token[]]
-        $Token
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()]
+        [System.Management.Automation.Language.Token[]]$Token
     )
+
+    Begin {
+        $Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Warning
+    }
 
     Process {
         $results = @()
@@ -56,7 +58,7 @@ function Measure-OverComment {
             if ($actualPercentage -ge 10) {
                 $result = New-Object `
                     -TypeName "Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord" `
-                    -ArgumentList $Messages.MeasureOverComment, $Token[0].Extent, $PSCmdlet.MyInvocation.InvocationName, Warning, $null
+                    -ArgumentList $Messages.MeasureOverComment, $Token[0].Extent, $PSCmdlet.MyInvocation.InvocationName, $Severity, $null
 
                 $results += $result
             }
@@ -70,7 +72,7 @@ function Measure-OverComment {
 }
 #endregion Unnecessary Comments
 
-#region Advanced Functions --INCOMPLETE
+#region Advanced Functions
 <#
 .SYNOPSIS
     Finds and detects advanced function capability
@@ -94,6 +96,10 @@ function Measure-AdvancedFunction {
         [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()]
         [System.Management.Automation.Language.FunctionDefinitionAst]$FunctionDefinitionAst
     )
+
+    Begin {
+        $Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Information
+    }
 
     Process {
         $results = @()
@@ -124,7 +130,7 @@ function Measure-AdvancedFunction {
             if ($FunctionDefinitionAst.IsWorkflow -or !$attrAsts) {
                 $result = New-Object `
                     -TypeName "Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord" `
-                    -ArgumentList $Messages.MeasureAdvancedFunctions, $FunctionDefinitionAst.Extent, $PSCmdlet.MyInvocation.InvocationName, Information, $null
+                    -ArgumentList $Messages.MeasureAdvancedFunctions, $FunctionDefinitionAst.Extent, $PSCmdlet.MyInvocation.InvocationName, $Severity, $null
 
                 $results += $result
             }
@@ -183,6 +189,10 @@ function Measure-FunctionSizeByLines {
         [System.Management.Automation.Language.FunctionDefinitionAst]$FunctionDefinitionAst
     )
 
+    Begin {
+        $Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Warning
+    }
+
     Process {
         $results = @()
         
@@ -190,7 +200,7 @@ function Measure-FunctionSizeByLines {
             if (($FunctionDefinitionAst.Extent.EndScriptPosition.LineNumber - $FunctionDefinitionAst.Extent.StartScriptPosition.LineNumber) -gt 10) {
                 $result = New-Object `
                     -TypeName "Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord" `
-                    -ArgumentList $Messages.MeasureFunctionSizeByLines, $FunctionDefinitionAst.Extent, $PSCmdlet.MyInvocation.InvocationName, Warning, $null
+                    -ArgumentList $Messages.MeasureFunctionSizeByLines, $FunctionDefinitionAst.Extent, $PSCmdlet.MyInvocation.InvocationName, $Severity, $null
         
                 $results += $result
             }
@@ -208,9 +218,9 @@ function Measure-FunctionSizeByLines {
 .SYNOPSIS
     Max Line length should be 120 characters
 .DESCRIPTION
-    Keeping lines to a small width allows scripts to be read in one direction (top to bottom) without scrolling back-and-forth horizontally
-    Debugging and reading the code is a lot easier
-    This is particularly valuable for reading Runbook code in the Azure Automation Account
+    Keeping lines to a small width allows scripts to be read in one direction (top to bottom) without scrolling back-and-forth horizontally.
+    Debugging and reading the code is a lot easier.
+    This is particularly valuable for reading Runbook code in the Azure Automation Account.
 .EXAMPLE
     Measure-LinesByCharacterCount -Token $Token
 .INPUTS
@@ -272,6 +282,10 @@ function Measure-LinesEndingWithSemicolons {
         [System.Management.Automation.Language.Token[]]$Token
     )
 
+    Begin {
+        $Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Warning
+    }
+
     Process {
         $results = @()
 
@@ -281,7 +295,7 @@ function Measure-LinesEndingWithSemicolons {
                 if ($subToken.Text.EndsWith(";")) {
                     $result = New-Object `
                         -TypeName "Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord" `
-                        -ArgumentList $Messages.MeasureLinesEndingWithSemicolon, $subToken.Extent, $PSCmdlet.MyInvocation.InvocationName, Warning, $null
+                        -ArgumentList $Messages.MeasureLinesEndingWithSemicolon, $subToken.Extent, $PSCmdlet.MyInvocation.InvocationName, $Severity, $null
                     $results += $result
                 }
             }
@@ -319,24 +333,24 @@ function Measure-PascalCaseFunctionNames {
         [System.Management.Automation.Language.FunctionDefinitionAst]$FunctionDefinitionAst
     )
 
+    Begin {
+        $Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Warning
+    }
+
     Process {
         $results = @()
         try {
-            [ScriptBlock]$predicate = {
-                param ([System.Management.Automation.Language.Ast]$Ast)
-                [bool]$returnValue = $false
-
-                if ($Ast -is [System.Management.Automation.Language.AttributeAst]) {
-                    [System.Management.Automation.Language.AttributeAst]$attrAst = $ast;
-                    if ($attrAst.TypeName.Name -eq 'CmdletBinding') {
-                        $returnValue = $true
-                    }
-                }
-
-                return $returnValue
+            if ($FunctionDefinitionAst.Name -cnotmatch "^[A-Z]\w+-[A-Z]\w+$") {
+                $result = New-Object `
+                    -TypeName "Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord" `
+                    -ArgumentList $Messages.MeasurePascalCaseFunctionNames, $FunctionDefinitionAst.Extent, $PSCmdlet.MyInvocation.InvocationName, $Severity, $null
             }
+            $results += $result
         }
-        catch {}
+
+        catch {
+            $PSCmdlet.ThrowTerminatingError($PSItem)
+        }
         
         return $results
     }
@@ -368,6 +382,7 @@ function Measure-CamelCaseVariableNames {
     )
 
     Begin {
+        $Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Warning
         [string[]]$autoVariables = ([psobject].Assembly.GetType('System.Management.Automation.SpecialVariables').GetFields('NonPublic,Static') | Where-Object FieldType -EQ ([string])).Name
         $autoVariables += @("FormatEnumerationLimit", "MaximumAliasCount", "MaximumDriveCount", "MaximumErrorCount", "MaximumFunctionCount", "MaximumVariableCount", "PGHome", "PGSE", "PGUICulture", "PGVersionTable", "PROFILE", "PSSessionOption")
     }
@@ -379,7 +394,7 @@ function Measure-CamelCaseVariableNames {
             if (($subToken -is [System.Management.Automation.Language.VariableToken]) -and ($subToken.Name -cnotin $autoVariables) -and ($subToken.Name -cmatch '^[A-Z]')) {
                 $result = New-Object `
                     -TypeName "Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord" `
-                    -ArgumentList $Messages.MeasureCamelCaseVariableNames, $subToken.Extent, $PSCmdlet.MyInvocation.InvocationName, Warning, $null
+                    -ArgumentList $Messages.MeasureCamelCaseVariableNames, $subToken.Extent, $PSCmdlet.MyInvocation.InvocationName, $Severity, $null
                 $results += $result
             }
         }
@@ -413,6 +428,10 @@ function Measure-VerbNounFunctionNames {
         [System.Management.Automation.Language.FunctionDefinitionAst]$FunctionDefinitionAst
     )
 
+    Begin {
+        #$Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Warning
+    }
+
     Process {
         $results = @()
         
@@ -443,6 +462,10 @@ function Measure-OrphanedFunctions {
     (
         [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][System.Management.Automation.Language.FunctionDefinitionAst]$FunctionDefinitionAst
     )
+
+    Begin {
+        #$Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Warning
+    }
 
     Process {
         $results = @()
