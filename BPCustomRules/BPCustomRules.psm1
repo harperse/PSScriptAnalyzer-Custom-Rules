@@ -419,6 +419,7 @@ function Measure-CamelCaseVariableNames {
 .NOTES
     Reference: 6.2 PSFunctionNaming (Custom)
 #>
+
 function Measure-VerbNounFunctionNames {
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
