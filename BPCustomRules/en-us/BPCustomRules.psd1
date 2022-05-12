@@ -7,6 +7,7 @@ MeasureLinesByCharacterCount      = Max Line length should be 120 characters. Ke
 MeasureLinesEndingWithSemicolon   = Semicolons do not serve any function in PowerShell as line terminators and are permitted in PowerShell but do not provide any benefit.
 MeasureCamelCaseVariableNames     = Variables should follow camel casing.
 MeasurePascalCaseFunctionNames    = PowerShell uses PascalCase for all public identifiers including classes and enums. Function names should follow PowerShell's Verb-Noun naming conventions.
-MeasureOrphanedFunction           = Functions that are created but are not assigned create technical debt
-MeasureVerbNounFunctionNames      = Ensure that function names follow the Verb-Noun naming conventions.
+MeasureOrphanedFunctions          = Functions that are created but are not assigned create technical debt
+MeasureVerbNounFunctionNames      = Ensure that function names follow the Verb-Noun naming conventions
+MeasureHyphenInFunctionNames      = The verb and noun in function names should be separated by hyphens.
 '@

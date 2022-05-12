@@ -2,17 +2,21 @@
 
 # Import Localized Data
 # Explicit culture needed for culture that do not match when using PowerShell Core: https://github.com/PowerShell/PowerShell/issues/8219
-if ([System.Threading.Thread]::CurrentThread.CurrentUICulture.Name -ne 'en-US') {
-    Import-LocalizedData -BindingVariable Messages -UICulture 'en-US'
+switch ([System.Threading.Thread]::CurrentThread.CurrentUICulture.Name) {
+    'en-US' { Import-LocalizedData -BindingVariable Messages -UICulture 'en-US' }
+    Default { Import-LocalizedData -BindingVariable Messages }
 }
-else {
-    Import-LocalizedData -BindingVariable Messages
-}
+
+#region Global Variables
+[int]$Global:OverCommentPercentage = 10
+[int]$Global:FunctionLineLimit = 150
+[int]$Global:LineCharacterLimit = 120
+#endregion Global Variables
 
 #region Unnecessary Comments
 <#
 .SYNOPSIS
-    Removes these unnecessary comments.
+    Notifies if the script contains an unnecessary percent of the file as comments.
 .DESCRIPTION
     Don't precede each line of code with a comment. Doing so breaks up the code and makes it harder to follow. A well-written PowerShell command, with full command and parameter names, can be pretty self-explanatory.
     Don't comment-explain it unless it isn't self-explanatory. To fix a violation of this rule, please remove these unnecessary comments.
@@ -36,13 +40,11 @@ function Measure-OverComment {
 
     Begin {
         $Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Warning
+        $results = @()
     }
 
     Process {
-        $results = @()
-
         try {
-            # Calculates comment tokens length
             foreach ($subToken in $Token) {
                 $allTokensLength += $subToken.Text.Length
                 if ($subToken.Kind -eq [System.Management.Automation.Language.TokenKind]::Comment) {
@@ -55,19 +57,20 @@ function Measure-OverComment {
 
             $actualPercentage = [int]($commentTokensLength / $allTokensLength * 100)
 
-            if ($actualPercentage -ge 10) {
+            if ($actualPercentage -ge $Global:OverCommentPercentage) {
                 $result = New-Object `
                     -TypeName "Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord" `
                     -ArgumentList $Messages.MeasureOverComment, $Token[0].Extent, $PSCmdlet.MyInvocation.InvocationName, $Severity, $null
-
                 $results += $result
             }
-
-            return $results
         }
         catch {
             $PSCmdlet.ThrowTerminatingError($PSItem)
         }
+    }
+
+    End {
+        return $results
     }
 }
 #endregion Unnecessary Comments
@@ -99,47 +102,42 @@ function Measure-AdvancedFunction {
 
     Begin {
         $Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Information
+        $results = @()
     }
 
     Process {
-        $results = @()
-
         try {
             #region Define predicates to find ASTs.
-
-            # Finds CmdletBinding attribute.
             [ScriptBlock]$predicate = {
-                param ([System.Management.Automation.Language.Ast]$Ast)
-
+                param (
+                    [System.Management.Automation.Language.Ast]$Ast
+                )
                 [bool]$returnValue = $false
-
                 if ($Ast -is [System.Management.Automation.Language.AttributeAst]) {
                     [System.Management.Automation.Language.AttributeAst]$attrAst = $ast;
                     if ($attrAst.TypeName.Name -eq 'CmdletBinding') {
                         $returnValue = $true
                     }
                 }
-
                 return $returnValue
             }
-
             #endregion
 
-            # Return directly if function is not an advanced function.
             [System.Management.Automation.Language.AttributeAst[]]$attrAsts = $FunctionDefinitionAst.Find($predicate, $true)
             if ($FunctionDefinitionAst.IsWorkflow -or !$attrAsts) {
                 $result = New-Object `
                     -TypeName "Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord" `
                     -ArgumentList $Messages.MeasureAdvancedFunctions, $FunctionDefinitionAst.Extent, $PSCmdlet.MyInvocation.InvocationName, $Severity, $null
-
                 $results += $result
             }
-
-            return $results
         }
         catch {
             $PSCmdlet.ThrowTerminatingError($PSItem)
         }
+    }
+
+    End {
+        return $results
     }
 }
 #endregion Advanced Functions
@@ -161,14 +159,38 @@ function Measure-AdvancedFunction {
     Reference: 8.5 PSNoKeys (Custom)
 #>
 function Measure-PotentialPasswordsOrKeys {
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+    Param
+    (
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()]
+        [System.Management.Automation.Language.Token[]]$Token
+    )
 
+    Begin {
+        #$Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Warning
+        $results = @()
+    }
+
+    Process {
+        try {
+
+        }
+        catch {
+            $PSCmdlet.ThrowTerminatingError($PSItem)
+        }
+    }
+
+    End {
+        return $results
+    }
 }
 #endregion PSNoKeys
 
 #region Function Size by Lines
 <#
 .SYNOPSIS
-    Function size should be limited to a maximum of 150 lines
+    Function size should be limited to a maximum number of lines
 .DESCRIPTION
     It is best practice for functions to do one thing. This will enforce modular, testable, and more efficient code
 .EXAMPLE
@@ -191,24 +213,25 @@ function Measure-FunctionSizeByLines {
 
     Begin {
         $Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Warning
+        $results = @()
     }
 
     Process {
-        $results = @()
-        
         try {
-            if (($FunctionDefinitionAst.Extent.EndScriptPosition.LineNumber - $FunctionDefinitionAst.Extent.StartScriptPosition.LineNumber) -gt 10) {
+            if (($FunctionDefinitionAst.Extent.EndScriptPosition.LineNumber - $FunctionDefinitionAst.Extent.StartScriptPosition.LineNumber) -gt $Global:FunctionLineLimit) {
                 $result = New-Object `
                     -TypeName "Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord" `
                     -ArgumentList $Messages.MeasureFunctionSizeByLines, $FunctionDefinitionAst.Extent, $PSCmdlet.MyInvocation.InvocationName, $Severity, $null
-        
                 $results += $result
             }
-            return $results
         }
         catch {
             $PSCmdlet.ThrowTerminatingError($PSItem)
         }
+    }
+
+    End {
+        return $results
     }
 }
 #endregion
@@ -216,7 +239,7 @@ function Measure-FunctionSizeByLines {
 #region Lines by Character Count
 <#
 .SYNOPSIS
-    Max Line length should be 120 characters
+    Max Line length should be a set number of characters
 .DESCRIPTION
     Keeping lines to a small width allows scripts to be read in one direction (top to bottom) without scrolling back-and-forth horizontally.
     Debugging and reading the code is a lot easier.
@@ -239,21 +262,27 @@ function Measure-LinesByCharacterCount {
         [System.Management.Automation.Language.CommandAst]$CommandAst
     )
 
-    Process {
+    Begin {
+        $Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Warning
         $results = @()
+    }
 
+    Process {
         try {
-            if (($CommandAst.Extent.EndColumnNumber - $CommandAst.Extent.StartColumnNumber) -gt 120) {
+            if (($CommandAst.Extent.EndColumnNumber - $CommandAst.Extent.StartColumnNumber) -gt $Global:LineCharacterLimit) {
                 $result = New-Object `
                     -TypeName "Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord" `
-                    -ArgumentList $Messages.MeasureLinesByCharacterCount, $CommandAst.Extent, $PSCmdlet.MyInvocation.InvocationName, Warning, $null
+                    -ArgumentList $Messages.MeasureLinesByCharacterCount, $CommandAst.Extent, $PSCmdlet.MyInvocation.InvocationName, $Severity, $null
                 $results += $result
             }
-            return $results
         }
         catch {
             $PSCmdlet.ThrowTerminatingError($PSItem)
         }
+    }
+
+    End {
+        return $results
     }
 }
 #endregion Lines by Character Count
@@ -284,13 +313,11 @@ function Measure-LinesEndingWithSemicolons {
 
     Begin {
         $Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Warning
+        $results = @()
     }
 
     Process {
-        $results = @()
-
         try {
-            # Calculates comment tokens length
             foreach ($subToken in $Token) {
                 if ($subToken.Text.EndsWith(";")) {
                     $result = New-Object `
@@ -299,16 +326,19 @@ function Measure-LinesEndingWithSemicolons {
                     $results += $result
                 }
             }
-            return $results
         }
         catch {
             $PSCmdlet.ThrowTerminatingError($PSItem)
         }
     }
+
+    End {
+        return $results
+    }
 }
 #endregion Lines Ending with a Semicolon
 
-#region FunctionsPascalCasing  --INCOMPLETE--
+#region FunctionsPascalCasing
 <#
 .SYNOPSIS
     Function names should follow PowerShell's Verb-Noun naming conventions.
@@ -335,23 +365,24 @@ function Measure-PascalCaseFunctionNames {
 
     Begin {
         $Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Warning
+        $results = @()
     }
 
     Process {
-        $results = @()
         try {
             if ($FunctionDefinitionAst.Name -cnotmatch "^[A-Z]\w+-[A-Z]\w+$") {
                 $result = New-Object `
                     -TypeName "Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord" `
                     -ArgumentList $Messages.MeasurePascalCaseFunctionNames, $FunctionDefinitionAst.Extent, $PSCmdlet.MyInvocation.InvocationName, $Severity, $null
+                $results += $result
             }
-            $results += $result
         }
-
         catch {
             $PSCmdlet.ThrowTerminatingError($PSItem)
         }
-        
+    }
+
+    End {
         return $results
     }
 }
@@ -385,72 +416,148 @@ function Measure-CamelCaseVariableNames {
         $Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Warning
         [string[]]$autoVariables = ([psobject].Assembly.GetType('System.Management.Automation.SpecialVariables').GetFields('NonPublic,Static') | Where-Object FieldType -EQ ([string])).Name
         $autoVariables += @("FormatEnumerationLimit", "MaximumAliasCount", "MaximumDriveCount", "MaximumErrorCount", "MaximumFunctionCount", "MaximumVariableCount", "PGHome", "PGSE", "PGUICulture", "PGVersionTable", "PROFILE", "PSSessionOption")
+        $results = @()
     }
 
     Process {
-        $results = @()
-        
-        foreach ($subToken in $Token) {
-            if (($subToken -is [System.Management.Automation.Language.VariableToken]) -and ($subToken.Name -cnotin $autoVariables) -and ($subToken.Name -cmatch '^[A-Z]')) {
-                $result = New-Object `
-                    -TypeName "Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord" `
-                    -ArgumentList $Messages.MeasureCamelCaseVariableNames, $subToken.Extent, $PSCmdlet.MyInvocation.InvocationName, $Severity, $null
-                $results += $result
+        try {
+            foreach ($subToken in $Token) {
+                if (($subToken -is [System.Management.Automation.Language.VariableToken]) -and ($subToken.Name -cnotin $autoVariables) -and ($subToken.Name -cmatch '^[A-Z]')) {
+                    $result = New-Object `
+                        -TypeName "Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord" `
+                        -ArgumentList $Messages.MeasureCamelCaseVariableNames, $subToken.Extent, $PSCmdlet.MyInvocation.InvocationName, $Severity, $null
+                    $results += $result
+                }
             }
         }
+        catch {
+            $PSCmdlet.ThrowTerminatingError($PSItem)
+        }
+    }
 
+    End {
         return $results
     }
 }
 #endregion VariableCamelCasing
 
-#region PSFunctionNaming  --INCOMPLETE--
+#region PSFunctionHyphens
+<#
+.SYNOPSIS
+    Ensure that function names follow the Verb-Noun naming conventions
+.DESCRIPTION
+    Ensure that function names follow the Verb-Noun naming conventions
+.EXAMPLE
+    Measure-HyphenInFunctionNames -Token $Token
+.INPUTS
+    [System.Management.Automation.Language.Token[]]
+.OUTPUTS
+    [Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord[]]
+.NOTES
+    Reference: 6.2 PSFunctionNaming (Custom)
+#>
+function Measure-HyphenInFunctionNames {
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+    Param
+    (
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()]
+        [System.Management.Automation.Language.Token[]]$Token
+    )
+
+    Begin {
+        $Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Warning
+        $wellDefinedFunctions = $Token | Where-Object { $_.Kind -eq 'Generic' -and $_.TokenFlags -eq [System.Management.Automation.Language.TokenFlags]::None }
+        $poorDefinedFunctions = $Token | Where-Object { $_.Extent.StartLineNumber -in $functionLines.Extent.StartLineNumber -and $_ -notin $wellDefinedFunctions }
+        $results = @()
+    }
+
+    Process {
+        #$functionLines = $($Token | Where-Object { $_.Kind -eq 'Function' })
+        try {
+            foreach ($poorDefinedFunction in $poorDefinedFunctions) {
+                if (($poorDefinedFunction.Text -ne "function") -and ($poorDefinedFunction.Kind -ne "LCurly") -and ($poorDefinedFunction.Kind -ne "Newline")) {
+                    $result = New-Object `
+                        -TypeName "Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord" `
+                        -ArgumentList $Messages.MeasureHyphenInFunctionNames, $poorDefinedFunction.Extent, $PSCmdlet.MyInvocation.InvocationName, $Severity, $null
+                    $results += $result
+                }
+            }
+        }
+        catch {
+            $PSCmdlet.ThrowTerminatingError($PSItem)
+        }
+    }
+
+    End {
+        return $results
+    }
+}
+#endregion PSFunctionHyphens
+
+#region PSFunctionNaming
 <#
 .SYNOPSIS
     Functions should follow PowerShell’s verb-noun naming convention
 .DESCRIPTION
     Functions should follow PowerShell’s verb-noun naming convention
 .EXAMPLE
-    Measure-VerbNounFunctionNames -FunctionDefinitionAst $FunctionDefinitionAst
+    Measure-VerbNounFunctionNames -Token $Token
 .INPUTS
-    [System.Management.Automation.Language.FunctionDefinitionAst]
+    [System.Management.Automation.Language.Token[]]
 .OUTPUTS
     [Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord[]]
 .NOTES
     Reference: 6.2 PSFunctionNaming (Custom)
 #>
-
 function Measure-VerbNounFunctionNames {
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     Param
     (
         [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()]
-        [System.Management.Automation.Language.FunctionDefinitionAst]$FunctionDefinitionAst
+        [System.Management.Automation.Language.Token[]]$Token
     )
 
     Begin {
-        #$Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Warning
+        $Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Warning
+        $definedFunctions = $Token | Where-Object { $_.Kind -eq 'Generic' -and $_.TokenFlags -eq [System.Management.Automation.Language.TokenFlags]::None }
+        $results = @()
     }
 
     Process {
-        $results = @()
-        
+        try {
+            foreach ($definedFunction in $definedFunctions) {
+                $functionName = $definedFunction.Text.Split('-')
+                if ($functionName[0] -notin $(Get-Verb).Verb) {
+                    $result = New-Object `
+                        -TypeName "Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord" `
+                        -ArgumentList $Messages.MeasureVerbNounFunctionNames, $definedFunction.Extent , $PSCmdlet.MyInvocation.InvocationName, $Severity, $null
+                    $results += $result
+                }
+            }
+        }
+        catch {
+            $PSCmdlet.ThrowTerminatingError($PSItem)
+        }
+    }
+
+    End {
         return $results
     }
 }
 #endregion PSFunctionNaming
 
-#region FunctionsShouldBeReferenced --INCOMPLETE--
+#region FunctionsShouldBeReferenced 
 <#
 .SYNOPSIS
     All functions should be referenced
 .DESCRIPTION
     Functions that are created but are not assigned create technical debt
 .EXAMPLE
-    Measure-OrphanedFunctions -FunctionDefinitionAst $FunctionDefinitionAst
+    Measure-OrphanedFunctions -Token $Token
 .INPUTS
-    [System.Management.Automation.Language.FunctionDefinitionAst]
+    [System.Management.Automation.Language.Token[]]
 .OUTPUTS
     [Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord[]]
 .NOTES
@@ -461,17 +568,34 @@ function Measure-OrphanedFunctions {
     [OutputType([Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     Param
     (
-        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][System.Management.Automation.Language.FunctionDefinitionAst]$FunctionDefinitionAst
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()]
+        [System.Management.Automation.Language.Token[]]$Token
     )
 
     Begin {
-        #$Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Warning
+        $Severity = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticSeverity]::Warning
+        $functions = $Token | Where-Object { $_.Kind -eq 'Generic' -and $_.TokenFlags -eq [System.Management.Automation.Language.TokenFlags]::None }
+        $commands = $Token | Where-Object { $_.Kind -eq 'Generic' -and $_.TokenFlags -eq [System.Management.Automation.Language.TokenFlags]::CommandName }
+        $results = @()
     }
 
     Process {
-        $results = @()
-        
-        return $results
+        try {
+            $CompareResults = Compare-Object -ReferenceObject $functions -DifferenceObject $commands | Where-Object { $_.SideIndicator -eq "<=" }
+            foreach ($CompareResult in $CompareResults) {
+                $result = New-Object `
+                    -TypeName "Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord" `
+                    -ArgumentList $Messages.MeasureOrphanedFunctions, $($Token.Extent | Where-Object { $_.Text -eq $CompareResult.InputObject.ToString() }) , $PSCmdlet.MyInvocation.InvocationName, $Severity, $null
+                $results += $result
+            }
+        }
+        catch { 
+            $PSCmdlet.ThrowTerminatingError($PSItem) 
+        }
+    }
+
+    End { 
+        return $results 
     }
 }
 #endregion FunctionsShouldBeReferenced
