@@ -11,6 +11,8 @@ switch ([System.Threading.Thread]::CurrentThread.CurrentUICulture.Name) {
 [int]$Global:OverCommentPercentage = 10
 [int]$Global:FunctionLineLimit = 150
 [int]$Global:LineCharacterLimit = 120
+[regex]$Global:CertificateThumbprintRegex = '[0-9A-F]{40}'
+[regex]$Global:CertificateBodyRegex = '^(?:(?!-{3,}(?:BEGIN|END) CERTIFICATE)[\s\S])*(-{3,}BEGIN CERTIFICATE(?:(?!-{3,}BEGIN CERTIFICATE)[\s\S])*?-{3,}END CERTIFICATE-{3,})\s*$'
 #endregion Global Variables
 
 #region Unnecessary Comments
